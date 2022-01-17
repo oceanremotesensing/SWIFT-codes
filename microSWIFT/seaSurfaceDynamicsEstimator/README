@@ -1,0 +1,11 @@
+seaSurfaceDynamicsEstimator README
+
+Description: 
+Development of a sea surface dynamics state estimator from measurements from a lagrangian drifter.
+
+Install python virtual environment
+1. Make a new virtual environment in this project directory: python3 -m venv .seaSurfaceDynamicsEstimator-venv
+2. Activate this new virtual enivornment: 
+    MacOS: source .seaSurfaceDynamicsEstimator-venv/bin/activate 
+    Windows: .seaSurfaceDynamicsEstimator-venv\Scripts\activate.bat
+3. Now install all required packages using: pip install -r seaSurfaceDynamicsEstimator-requirements.txt
