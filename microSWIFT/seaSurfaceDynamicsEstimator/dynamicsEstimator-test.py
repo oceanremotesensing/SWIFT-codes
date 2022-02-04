@@ -31,11 +31,11 @@ class seaSurfaceDynamics:
         # 2. All measurements are independent events
 
         # Define microSWIFT instrument characteristics
-        gps_pos_std = 1         # lat, lon accuracy standard deviation, units are meters
-        gps_altitude_std = 1    # GPS alitude accuracy standard deviation, units are meters
-        gps_vel_std = 1         # GPS velocity standard deviation, units are meters/sec
-        imu_accel_std = 1       # IMU acceleration standard deviation, units are meters/sec^2
-        imu_gyro_str = 1        # IMU gyroscope standard deviation, units are degrees/sec
+        gps_pos_std = .1         # lat, lon accuracy standard deviation, units are meters
+        gps_altitude_std = .1    # GPS alitude accuracy standard deviation, units are meters
+        gps_vel_std = .1         # GPS velocity standard deviation, units are meters/sec
+        imu_accel_std = .04      # IMU acceleration standard deviation, units are meters/sec^2
+        imu_gyro_str = .1        # IMU gyroscope standard deviation, units are degrees/sec
 
         # GPS Measurements
         # Compute measurments from random samples in a normal distribution with each instruments standard deviation
@@ -106,7 +106,6 @@ class seaSurfaceDynamics:
         ax4.plot(self.time, self.az_meas)
         ax4.set_ylabel('Acceleration [m/s^2]')
         ax4.set_xlabel('Time [seconds]')
-
         plt.show()
 
     def compareEstimate2True(self):
@@ -132,6 +131,12 @@ class seaSurfaceDynamics:
         ax4.set_ylabel('Acceleration [m/s^2]')
         ax4.set_xlabel('Time [seconds]')
         plt.show()
+
+        # Compute percent error and plot
+        error = (self.state_est - self.true_state)/self.true_state * 100
+        fig_error, ax = plt.subplots()
+        ax.plot(error[0,:])
+        plt.show()
         
 
 def main():
@@ -148,11 +153,12 @@ def main():
     seconds = 1000
     time = np.linspace(0,seconds, num=seconds*sampling_freq) # Time in seconds
 
-    ## Test 1 (Simple)- simple cosine function for surface with no noise and buoys moved in a straight line on surface
-    wave_period = 15 # Period of the test wave, units are seconds
-    x_simple_true = np.cos(((2*np.pi)/wave_period) * time) + np.arange(200, 500, step=(500-200)/len(time)) # straight line, units are meters
-    y_simple_true = np.cos(((2*np.pi)/wave_period) * time) + np.arange(100, 200, step=(200-100)/len(time)) # straight line, units are meters
-    z_simple_true = np.cos(((2*np.pi)/wave_period) * time) # cosine function, units are meters
+    ## Test 1 (Simple)- simple cosine function for surface buoys moved in a straight line on surface
+    wave_period = 10 # Period of the test wave, units are seconds
+    wave_amp = 2    # Amplitude of wave, units are meters
+    x_simple_true = wave_amp * np.cos(((2*np.pi + np.pi/2)/wave_period) * time) + np.arange(200, 500, step=(500-200)/len(time)) # straight line, units are meters
+    y_simple_true = wave_amp * np.cos(((2*np.pi + np.pi/2)/wave_period) * time) + np.arange(100, 200, step=(200-100)/len(time)) # straight line, units are meters
+    z_simple_true = wave_amp * np.cos(((2*np.pi)/wave_period) * time) # cosine function, units are meters
 
     # Instantiate simple sea class (singular cosine function)
     simple_sea = seaSurfaceDynamics(x_simple_true, y_simple_true, z_simple_true, time, dt)
@@ -163,6 +169,53 @@ def main():
     # seaSurfaceDynamicsEstimator test
     simple_sea.state_est = seaSurfaceDynamicsEstimator_linear(simple_sea.measured_state, simple_sea.dt)
     simple_sea.compareEstimate2True()
+
+    ## Test 2 (Two_components)- two simple cosine functions for surface and buoys moved in a straight line on surface
+    wave_period_1 = 10 # Period of the test wave, units are seconds
+    wave_amp_1 = 2    # Amplitude of wave, units are meters
+    wave_period_2 = 15
+    wave_amp_2 = 1
+    x_two_comp_true = wave_amp_1 * np.cos(((2*np.pi + np.pi/2)/wave_period_1) * time) + wave_amp_2 * np.cos(((2*np.pi + np.pi/2)/wave_period_2) * time) + np.arange(200, 500, step=(500-200)/len(time)) # straight line, units are meters
+    y_two_comp_true = wave_amp_1 * np.cos(((2*np.pi + np.pi/2)/wave_period_1) * time) + wave_amp_2 * np.cos(((2*np.pi + np.pi/2)/wave_period_2) * time) + np.arange(100, 200, step=(200-100)/len(time)) # straight line, units are meters
+    z_two_comp_true = wave_amp_1 * np.cos(((2*np.pi)/wave_period_1) * time) + wave_amp_2 * np.cos(((2*np.pi + np.pi/2)/wave_period_2) * time) # cosine function, units are meters
+
+    # Instantiate simple sea class (singular cosine function)
+    two_comp_sea = seaSurfaceDynamics(x_two_comp_true, y_two_comp_true, z_two_comp_true, time, dt)
+    two_comp_sea.microSWIFTMeasurments()
+    two_comp_sea.plotTrueState()
+    two_comp_sea.plotMeasuredState()
+
+    # seaSurfaceDynamicsEstimator test
+    two_comp_sea.state_est = seaSurfaceDynamicsEstimator_linear(two_comp_sea.measured_state, two_comp_sea.dt)
+    two_comp_sea.compareEstimate2True()
+
+    ## Test 3 (Three components)- three simple cosine functions for surface and buoys moved in a straight line on surface
+    wave_period_1 = 10 # Period of the test wave, units are seconds
+    wave_amp_1 = 2    # Amplitude of wave, units are meters
+    wave_period_2 = 15
+    wave_amp_2 = 1
+    wave_period_3 = 3
+    wave_amp_3 = 0.5
+
+    # Wave Components
+    comp_1 = wave_amp_1 * np.cos(((2*np.pi + np.pi/2)/wave_period_1) * time)
+    comp_2 = wave_amp_2 * np.cos(((2*np.pi + np.pi/2)/wave_period_2) * time)
+    comp_3 = wave_amp_3 * np.cos(((2*np.pi + np.pi/2)/wave_period_3) * time)
+    
+    # Position time series
+    x_three_comp_true =  comp_1 + comp_2 + comp_3 + np.arange(200, 500, step=(500-200)/len(time)) 
+    y_three_comp_true =  comp_1 + comp_2 + comp_3 + np.arange(100, 200, step=(200-100)/len(time))
+    z_three_comp_true =  comp_1 + comp_2 + comp_3 
+
+    # Instantiate simple sea class (singular cosine function)
+    three_comp_sea = seaSurfaceDynamics(x_three_comp_true, y_three_comp_true, z_three_comp_true, time, dt)
+    three_comp_sea.microSWIFTMeasurments()
+    three_comp_sea.plotTrueState()
+    three_comp_sea.plotMeasuredState()
+
+    # seaSurfaceDynamicsEstimator test
+    three_comp_sea.state_est = seaSurfaceDynamicsEstimator_linear(three_comp_sea.measured_state, three_comp_sea.dt)
+    three_comp_sea.compareEstimate2True()
 
 if __name__=='__main__':
     main()

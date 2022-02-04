@@ -45,7 +45,7 @@ def seaSurfaceDynamicsEstimator_linear(measured_state, dt):
     Q = np.eye(dim_state)
 
     # Define measurement function and uncertainty
-    H = np.zeros((dim_measurement, dim_state))
+    H = np.eye(dim_measurement) # * THIS WILL NEED TO BE UPDATED IN THE FUTURE  
     R = np.eye(dim_measurement)
 
     # Define initial state as the first set of measurements
@@ -54,12 +54,12 @@ def seaSurfaceDynamicsEstimator_linear(measured_state, dt):
     # Kalman Filter
     for k in np.arange(1,dim_time):
         # Define the previous step 
-        previous_state = state_est[:,k-1]
+        previous_state = state_est[:,k-1].reshape(dim_state, 1)
 
         ## Predict State Movement to Prior 
         # x = Fx
         state_prior = np.dot(F, previous_state)
-
+        
         # Compute State Covariance matrix
         # P = FPF' + Q
         P = np.dot(F, np.dot(P, F.T)) + Q
@@ -67,25 +67,28 @@ def seaSurfaceDynamicsEstimator_linear(measured_state, dt):
         ## Update state movement from prior with measurement
         # Compute Residual
         # y = z - Hx
-        y = measured_state[:,k] - np.dot(H, state_prior)
-
+        y = measured_state[:,k].reshape(dim_state, 1) - np.dot(H, state_prior)
+        
         # S = HPH' + R
-        S = np.dot(H, np.dot(P, H.T)) + R
+        # common subexpression for speed
+        PHT = np.dot(P, H.T)
+        S = np.dot(H, PHT) + R
+        S_inv = inv(S)
 
         # Compute Kalman Gain
         # K = PH'inv(S)
-        K = np.dot(P, np.dot(H.T, inv(S)))
+        K = np.dot(PHT, S_inv)
 
         # Update next step with Kalman gain
         # x = x + Ky
         state_est_current = state_prior + np.dot(K, y)
 
         # Save updated state into the state estimate matrix
-        state_est[:,k] = state_est_current
+        state_est[:,k] = np.squeeze(state_est_current)
 
         # Update state covariance matrix
         # P = (I-KH)P(I-KH)' + KRK'
-        P = np.dot((np.eye(P.shape[0]) - np.dot(K, H)), np.dot(P,(np.eye(P.shape[0]) - np.dot(K, H)).T)) + np.dot(K, np.dot(R, K.T))
+        # P = np.dot((np.eye(P.shape[0]) - np.dot(K, H)), np.dot(P,(np.eye(P.shape[0]) - np.dot(K, H)).T)) + np.dot(K, np.dot(R, K.T))
 
         # Save the State Covariance matrix
 

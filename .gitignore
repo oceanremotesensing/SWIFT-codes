@@ -1,2 +1,3 @@
 # Files to ignore - generally machine specific files
 .seaSurfaceDynamicsEstimator-venv
+microSWIFT/seaSurfaceDynamicsEstimator/__pycache__/seaSurfaceDynamicsEstimator.cpython-39.pyc
